@@ -35,12 +35,12 @@ class Echo3dSearchExtension(omni.ext.IExt):
         print("[echo3D] echo3D startup")
 
         # Define functions for search feature
-        def update_images(json):
+        def update_search_images():
             start_index = current_search_page * IMAGES_PER_PAGE
             end_index = start_index + IMAGES_PER_PAGE
             for i in range(start_index, end_index):
-                if i < len(json):
-                    search_image_widgets[i % IMAGES_PER_PAGE].source_url = json[i]["thumbnail"]
+                if i < len(searchJsonData):
+                    search_image_widgets[i % IMAGES_PER_PAGE].source_url = searchJsonData[i]["thumbnail"]
                 else:
                     search_image_widgets[i % IMAGES_PER_PAGE].source_url = ""
 
@@ -48,13 +48,13 @@ class Echo3dSearchExtension(omni.ext.IExt):
             global current_search_page
             current_search_page -= 1
             global searchJsonData
-            update_images(searchJsonData)
+            update_search_images(searchJsonData)
 
         def on_click_right_arrow_search():
             global current_search_page
             current_search_page += 1
             global searchJsonData
-            update_images(searchJsonData)
+            update_search_images(searchJsonData)
 
         def on_click_search():
             searchTerm = searchInput.model.get_value_as_string()
@@ -81,9 +81,54 @@ class Echo3dSearchExtension(omni.ext.IExt):
         def on_reset_search():
             searchLabel.text = "Keywords:"
             searchInput.model.set_value("")
+            global search_image_widgets
+            for i in range(IMAGES_PER_PAGE):
+                search_image_widgets[i].source_url = ""
 
         # Define functions for project querying
+        def update_project_images():
+            start_index = current_project_page * IMAGES_PER_PAGE
+            end_index = start_index + IMAGES_PER_PAGE
+            for i in range(start_index, end_index):
+                if i < len(projectJsonData):
+                    baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
+                    imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
+                    project_image_widgets[i % IMAGES_PER_PAGE].source_url = baseUrl + imageFilename
+                else:
+                    project_image_widgets[i % IMAGES_PER_PAGE].source_url = ""
 
+        def on_click_left_arrow_project():
+            global current_project_page
+            current_project_page -= 1
+            global projectJsonData
+            update_project_images(projectJsonData)
+
+        def on_click_right_arrow_project():
+            global current_project_page
+            current_project_page += 1
+            global projectJsonData
+            update_project_images(projectJsonData)
+
+        def on_click_load_project():
+            api_url = "https://api.echo3d.com/query"
+            data = {
+                "key": apiKeyInput.model.get_value_as_string(),
+                "secKey": secKeyInput.model.get_value_as_string(),
+            }
+
+            projectQueryRequest = requests.post(url=api_url, data=data).json()["db"]
+            values = list(projectQueryRequest.values())
+
+            global projectJsonData
+            projectJsonData = values
+            global project_image_widgets
+            for i in range(IMAGES_PER_PAGE):
+                if i < len(projectJsonData):
+                    baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
+                    imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
+                    project_image_widgets[i].source_url = baseUrl + imageFilename
+                else:
+                    project_image_widgets[i].source_url = ""
 
         # Display the UI
         self._window = ui.Window("Echo3D", width=300, height=300)
@@ -95,9 +140,17 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     apiKeyInput = ui.StringField()
                     ui.Label("Security Key:")
                     secKeyInput = ui.StringField()
+                    ui.Button("Load Project", clicked_fn=on_click_load_project)
 
-                apiKeyInput.model.set_value("quiet-base-7038")
-                secKeyInput.model.set_value("Bs4TW8MjWrYk2bTVx1SjbSwx")
+                apiKeyInput.model.set_value("summer-darkness-5935")
+                secKeyInput.model.set_value("T8tbDSXApoJ1dQLnG0b3qPyY")
+
+                global project_image_widgets
+                with ui.HStack():
+                    ui.Button("<", clicked_fn=on_click_left_arrow_project)
+                    for i in range(IMAGES_PER_PAGE):
+                        project_image_widgets[i] = ui.Image("")
+                    ui.Button(">", clicked_fn=on_click_right_arrow_project)
 
                 with ui.HStack():
                     searchLabel = ui.Label("Keywords:")
