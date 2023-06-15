@@ -10,6 +10,21 @@ def some_public_function(x: int):
     return x ** x
 
 
+# Constants
+IMAGES_PER_PAGE = 7
+
+# Global variables
+current_search_page = 0
+current_project_page = 0
+
+# Create image widgets for displaying images
+search_image_widgets = [ui.Image() for _ in range(IMAGES_PER_PAGE)]
+project_image_widgets = [ui.Image() for _ in range(IMAGES_PER_PAGE)]
+
+searchJsonData = []
+projectJsonData = []
+
+
 # Any class derived from `omni.ext.IExt` in top level module (defined in `python.modules` of `extension.toml`) will be
 # instantiated when extension gets enabled and `on_startup(ext_id)` will be called. Later when extension gets disabled
 # on_shutdown() is called.
@@ -17,62 +32,88 @@ class Echo3dSearchExtension(omni.ext.IExt):
     # ext_id is current extension id. It can be used with extension manager to query additional information, like where
     # this extension is located on filesystem.
     def on_startup(self, ext_id):
-        print("[echo3d.search] echo3d search startup")
+        print("[echo3D] echo3D startup")
 
-        self._count = 0
+        # Define functions for search feature
+        def update_images(json):
+            start_index = current_search_page * IMAGES_PER_PAGE
+            end_index = start_index + IMAGES_PER_PAGE
+            for i in range(start_index, end_index):
+                if i < len(json):
+                    search_image_widgets[i % IMAGES_PER_PAGE].source_url = json[i]["thumbnail"]
+                else:
+                    search_image_widgets[i % IMAGES_PER_PAGE].source_url = ""
 
-        self._window = ui.Window("My Window", width=300, height=300)
+        def on_click_left_arrow_search():
+            global current_search_page
+            current_search_page -= 1
+            global searchJsonData
+            update_images(searchJsonData)
+
+        def on_click_right_arrow_search():
+            global current_search_page
+            current_search_page += 1
+            global searchJsonData
+            update_images(searchJsonData)
+
+        def on_click_search():
+            searchTerm = searchInput.model.get_value_as_string()
+
+            api_url = "https://api.echo3d.com/search"
+            data = {
+                "key": apiKeyInput.model.get_value_as_string(),
+                "secKey": secKeyInput.model.get_value_as_string(),
+                "keywords": searchTerm,
+                "include2Dcontent": "false"
+            }
+
+            librarySearchRequest = requests.post(url=api_url, data=data)
+            global searchJsonData
+            searchJsonData = librarySearchRequest.json()
+            searchLabel.text = "Showing results for: '" + searchTerm + "'"
+            global search_image_widgets
+            for i in range(IMAGES_PER_PAGE):
+                if i < len(searchJsonData):
+                    search_image_widgets[i].source_url = librarySearchRequest.json()[i]["thumbnail"]
+                else:
+                    search_image_widgets[i].source_url = ""
+  
+        def on_reset_search():
+            searchLabel.text = "Keywords:"
+            searchInput.model.set_value("")
+
+        # Define functions for project querying
+
+
+        # Display the UI
+        self._window = ui.Window("Echo3D", width=300, height=300)
         with self._window.frame:
             with ui.VStack():
-                title = ui.Label("Search for models via Echo3D")
-                ui.ImageWithProvider(
-                    source="https://picsum.photos/200/300",
-                    width=10,
-                    height=10,
-                )
                 with ui.HStack():
-                    ui.Label("Keywords:")
-                    searchInput = ui.StringField()
-                with ui.HStack():
+                    ui.Label("Connect to your Echo3D Project:")
                     ui.Label("API Key:")
                     apiKeyInput = ui.StringField()
-                with ui.HStack():
                     ui.Label("Security Key:")
                     secKeyInput = ui.StringField()
 
                 apiKeyInput.model.set_value("quiet-base-7038")
                 secKeyInput.model.set_value("Bs4TW8MjWrYk2bTVx1SjbSwx")
 
-                def on_click():
-                    omni.kit.commands.execute('CreatePrimWithDefaultXform', prim_type='Cube',
-                                              attributes={'size': 100.0,
-                                                          'extent': [(-50.0, -50.0, -50.0), (50.0, 50.0, 50.0)]})
-
-                    self._count += 1
-                    searchTerm = searchInput.model.get_value_as_string()
-
-                    api_url = "https://api.echo3d.com/search"
-                    data = {
-                        "key": apiKeyInput.model.get_value_as_string(),
-                        "secKey": secKeyInput.model.get_value_as_string(),
-                        "keywords": searchTerm,
-                        "include2Dcontent": "false"
-                    }
-
-                    librarySearchRequest = requests.post(url=api_url, data=data)
-                    print(librarySearchRequest.json())
-                    title.text = "Showing results for: '" + searchTerm + "'"
-
-                def on_reset():
-                    self._count = 0
-                    title.text = "Search for models via Echo3D"
-                    searchInput.model.set_value("")
-
-                on_reset()
-
                 with ui.HStack():
-                    ui.Button("Search", clicked_fn=on_click)
-                    ui.Button("Clear", clicked_fn=on_reset)
+                    searchLabel = ui.Label("Keywords:")
+                    searchInput = ui.StringField()
+                    with ui.VStack():
+                        ui.Button("Search", clicked_fn=on_click_search)
+                        ui.Button("Clear", clicked_fn=on_reset_search)
+
+                on_reset_search()
+
+                global search_image_widgets
+                with ui.HStack():
+                    ui.Button("<", clicked_fn=on_click_left_arrow_search)
+                    for i in range(IMAGES_PER_PAGE):
+                        search_image_widgets[i] = ui.Image("")
+                    ui.Button(">", clicked_fn=on_click_right_arrow_search)
 
     def on_shutdown(self):
-        print("[echo3d.search] echo3d search shutdown")
+        print("[echo3D] echo3D shutdown")
