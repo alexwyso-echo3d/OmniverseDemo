@@ -3,38 +3,32 @@ import omni.ui as ui
 import omni.kit.commands
 from pip_prebundle import requests
 
-
-# Functions and vars are available to other extension as usual in python: `example.python_ext.some_public_function(x)`
-def some_public_function(x: int):
-    print("[echo3d.search] some_public_function was called with x: ", x)
-    return x ** x
-
-
-# Constants
+# GLOBAL VARIABLES
 IMAGES_PER_PAGE = 7
-
-# Global variables
 current_search_page = 0
 current_project_page = 0
-
-# Create image widgets for displaying images
 search_image_widgets = [ui.Image() for _ in range(IMAGES_PER_PAGE)]
 project_image_widgets = [ui.Image() for _ in range(IMAGES_PER_PAGE)]
-
 searchJsonData = []
 projectJsonData = []
 
 
-# Any class derived from `omni.ext.IExt` in top level module (defined in `python.modules` of `extension.toml`) will be
-# instantiated when extension gets enabled and `on_startup(ext_id)` will be called. Later when extension gets disabled
-# on_shutdown() is called.
+###########################################################################################################
+#                                                                                                         #
+#   An extension for Nvidia Omniverse that allows users to connect to their echo3D projects in order to   #
+#   stream their existing assets into the Omniverse Viewport, as well as search for new assets in the     #
+#   echo3D public asset library to add to their projects.                                                 #
+#                                                                                                         #
+###########################################################################################################
 class Echo3dSearchExtension(omni.ext.IExt):
-    # ext_id is current extension id. It can be used with extension manager to query additional information, like where
-    # this extension is located on filesystem.
     def on_startup(self, ext_id):
         print("[echo3D] echo3D startup")
 
-        # Define functions for search feature
+        ###############################################
+        #     Define Functions for Search Feature     #
+        ###############################################
+
+        # Load in new image thumbnails when clicks the previous/next buttons
         def update_search_images():
             start_index = current_search_page * IMAGES_PER_PAGE
             end_index = start_index + IMAGES_PER_PAGE
@@ -56,6 +50,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
             global searchJsonData
             update_search_images(searchJsonData)
 
+        # Call the echo3D /search endpoint to get models and display the first 7 resulting thumbnails
         def on_click_search():
             searchTerm = searchInput.model.get_value_as_string()
 
@@ -78,6 +73,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                 else:
                     search_image_widgets[i].source_url = ""
   
+        # Clear all the thumbnails
         def on_reset_search():
             searchLabel.text = "Keywords:"
             searchInput.model.set_value("")
@@ -85,7 +81,11 @@ class Echo3dSearchExtension(omni.ext.IExt):
             for i in range(IMAGES_PER_PAGE):
                 search_image_widgets[i].source_url = ""
 
-        # Define functions for project querying
+        #################################################
+        #     Define Functions for Project Querying     #
+        #################################################
+
+        # Load in new image thumbnails when clicks the previous/next buttons
         def update_project_images():
             start_index = current_project_page * IMAGES_PER_PAGE
             end_index = start_index + IMAGES_PER_PAGE
@@ -109,6 +109,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
             global projectJsonData
             update_project_images(projectJsonData)
 
+        # Call the echo3D /query endpoint to get models and display the first 7 resulting thumbnails
         def on_click_load_project():
             api_url = "https://api.echo3d.com/query"
             data = {
