@@ -1,3 +1,4 @@
+import os
 import omni.ext
 import omni.ui as ui
 import omni.kit.commands
@@ -72,6 +73,20 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     search_image_widgets[i].source_url = librarySearchRequest.json()[i]["thumbnail"]
                 else:
                     search_image_widgets[i].source_url = ""
+
+            # Filter the project assets to reflect the search
+            global projectJsonData
+            projectJsonData = [entry for entry in projectJsonData
+                               if (entry["hologram"]["filename"].find(searchTerm) != -1)]
+            
+            global project_image_widgets
+            for i in range(IMAGES_PER_PAGE):
+                if i < len(projectJsonData):
+                    baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
+                    imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
+                    project_image_widgets[i].source_url = baseUrl + imageFilename
+                else:
+                    project_image_widgets[i].source_url = ""
   
         # Clear all the thumbnails
         def on_reset_search():
@@ -80,6 +95,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
             global search_image_widgets
             for i in range(IMAGES_PER_PAGE):
                 search_image_widgets[i].source_url = ""
+            on_click_load_project()
 
         #################################################
         #     Define Functions for Project Querying     #
@@ -136,7 +152,12 @@ class Echo3dSearchExtension(omni.ext.IExt):
         with self._window.frame:
             with ui.VStack():
                 with ui.HStack():
-                    ui.Label("Connect to your Echo3D Project:")
+                    with ui.VStack():
+                        script_dir = os.path.dirname(os.path.abspath(__file__))
+                        image_filename = 'echo3D_Logo.png'
+                        image_path = os.path.join(script_dir, image_filename)
+                        ui.Image(image_path)
+                        ui.Label("Connect to your Echo3D Project:")
                     ui.Label("API Key:")
                     apiKeyInput = ui.StringField()
                     ui.Label("Security Key:")
