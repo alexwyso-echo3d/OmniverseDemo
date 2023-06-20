@@ -3,9 +3,10 @@ import omni.ext
 import omni.ui as ui
 import omni.kit.commands
 from pip_prebundle import requests
+from omni.ui import color as cl
 
 # GLOBAL VARIABLES
-IMAGES_PER_PAGE = 7
+IMAGES_PER_PAGE = 3
 current_search_page = 0
 current_project_page = 0
 search_image_widgets = [ui.Image() for _ in range(IMAGES_PER_PAGE)]
@@ -30,7 +31,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
         ###############################################
 
         # Load in new image thumbnails when clicks the previous/next buttons
-        def update_search_images():
+        def update_search_images(searchJsonData):
             start_index = current_search_page * IMAGES_PER_PAGE
             end_index = start_index + IMAGES_PER_PAGE
             for i in range(start_index, end_index):
@@ -66,7 +67,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
             librarySearchRequest = requests.post(url=api_url, data=data)
             global searchJsonData
             searchJsonData = librarySearchRequest.json()
-            searchLabel.text = "Showing results for: '" + searchTerm + "'"
+            # searchLabel.text = "Showing results for: '" + searchTerm + "'"
             global search_image_widgets
             for i in range(IMAGES_PER_PAGE):
                 if i < len(searchJsonData):
@@ -90,7 +91,6 @@ class Echo3dSearchExtension(omni.ext.IExt):
   
         # Clear all the thumbnails
         def on_reset_search():
-            searchLabel.text = "Keywords:"
             searchInput.model.set_value("")
             global search_image_widgets
             for i in range(IMAGES_PER_PAGE):
@@ -102,7 +102,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
         #################################################
 
         # Load in new image thumbnails when clicks the previous/next buttons
-        def update_project_images():
+        def update_project_images(projectJsonData):
             start_index = current_project_page * IMAGES_PER_PAGE
             end_index = start_index + IMAGES_PER_PAGE
             for i in range(start_index, end_index):
@@ -148,47 +148,93 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     project_image_widgets[i].source_url = ""
 
         # Display the UI
-        self._window = ui.Window("Echo3D", width=300, height=300)
+        self._window = ui.Window("Echo3D", width=400, height=465)
         with self._window.frame:
             with ui.VStack():
-                with ui.HStack():
-                    with ui.VStack():
-                        script_dir = os.path.dirname(os.path.abspath(__file__))
-                        image_filename = 'echo3D_Logo.png'
-                        image_path = os.path.join(script_dir, image_filename)
-                        ui.Image(image_path)
-                        ui.Label("Connect to your Echo3D Project:")
-                    ui.Label("API Key:")
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                image_filename = 'echo3D_Logo.png'
+                image_path = os.path.join(script_dir, image_filename)
+                with ui.Frame(height=25):
+                    ui.Image(image_path)
+                ui.Spacer(height=5)
+                with ui.HStack(height=20):
+                    ui.Spacer(width=5)
+                    with ui.Frame(width=90):
+                        ui.Label("API Key:")
                     apiKeyInput = ui.StringField()
-                    ui.Label("Security Key:")
+                    ui.Spacer(width=5)
+                ui.Spacer(height=3)
+                with ui.HStack(height=20):
+                    ui.Spacer(width=5)
+                    with ui.Frame(width=90):
+                        ui.Label("Security Key:")
                     secKeyInput = ui.StringField()
+                    with ui.Frame(width=5):
+                        ui.Label("")
+                ui.Spacer(height=3)
+                with ui.Frame(height=20):
                     ui.Button("Load Project", clicked_fn=on_click_load_project)
+                ui.Spacer(height=3)
+                with ui.HStack(height=5):
+                    ui.Spacer(width=5)
+                    ui.Line(name='default', style={"color": cl.gray})
+                    ui.Spacer(width=5)
+                ui.Spacer(height=3)
+                with ui.HStack(height=20):
+                    ui.Spacer(width=5)
+                    ui.Label("Assets in Project:")
 
                 apiKeyInput.model.set_value("summer-darkness-5935")
                 secKeyInput.model.set_value("T8tbDSXApoJ1dQLnG0b3qPyY")
-
                 global project_image_widgets
-                with ui.HStack():
-                    ui.Button("<", clicked_fn=on_click_left_arrow_project)
+                with ui.HStack(height=80):
+                    with ui.Frame(height=80, width=10):
+                        ui.Button("<", clicked_fn=on_click_left_arrow_project)
+                    ui.Spacer(width=5)
                     for i in range(IMAGES_PER_PAGE):
-                        project_image_widgets[i] = ui.Image("")
-                    ui.Button(">", clicked_fn=on_click_right_arrow_project)
-
-                with ui.HStack():
-                    searchLabel = ui.Label("Keywords:")
-                    searchInput = ui.StringField()
-                    with ui.VStack():
-                        ui.Button("Search", clicked_fn=on_click_search)
-                        ui.Button("Clear", clicked_fn=on_reset_search)
-
-                on_reset_search()
-
+                        with ui.Frame(height=80):
+                            project_image_widgets[i] = ui.Image("", fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP,
+                                                                alignment=ui.Alignment.CENTER,
+                                                                style={'border_radius': 5})
+                        ui.Spacer(width=5)
+                    with ui.Frame(height=80, width=10):
+                        ui.Button(">", clicked_fn=on_click_right_arrow_project)
+                ui.Spacer(height=10)
+                with ui.HStack(height=5):
+                    ui.Spacer(width=5)
+                    ui.Line(name='default', style={"color": cl.gray})
+                    ui.Spacer(width=5)
+                ui.Spacer(height=5)
+                with ui.HStack(height=20):
+                    ui.Spacer(width=5)
+                    ui.Label("Public Search Results:")
                 global search_image_widgets
-                with ui.HStack():
-                    ui.Button("<", clicked_fn=on_click_left_arrow_search)
+                with ui.HStack(height=80):
+                    with ui.Frame(width=10):
+                        ui.Button("<", clicked_fn=on_click_left_arrow_search)
+                    ui.Spacer(width=5)
                     for i in range(IMAGES_PER_PAGE):
-                        search_image_widgets[i] = ui.Image("")
-                    ui.Button(">", clicked_fn=on_click_right_arrow_search)
+                        search_image_widgets[i] = ui.Image("", fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP,
+                                                           alignment=ui.Alignment.CENTER,
+                                                           style={'border_radius': 5})
+                        ui.Spacer(width=5)
+                    with ui.Frame(width=10):
+                        ui.Button(">", clicked_fn=on_click_right_arrow_search)
+                ui.Spacer(height=10)
+                with ui.HStack(height=20):
+                    ui.Spacer(width=5)
+                    with ui.Frame(width=90):
+                        ui.Label("Keywords:")
+                    searchInput = ui.StringField()
+                    searchInput.model.set_value("Dog")
+                    with ui.Frame(width=5):
+                        ui.Label("")
+                ui.Spacer(height=5)
+                with ui.VStack():
+                    with ui.Frame(height=20):
+                        ui.Button("Search", clicked_fn=on_click_search)
+                    with ui.Frame(height=20):
+                        ui.Button("Clear", clicked_fn=on_reset_search)
 
     def on_shutdown(self):
         print("[echo3D] echo3D shutdown")
