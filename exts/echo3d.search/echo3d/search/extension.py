@@ -22,7 +22,7 @@ project_button_styles = [
     {
         "border_radius": 5,
         "Button.Image": {
-            "color": cl("#FFFFFF"),
+            "color": cl("#FFFFFF30"),
             "image_url": cloud_image_path,
             "alignment": ui.Alignment.CENTER,
             "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
@@ -32,7 +32,7 @@ search_button_styles = [
     {
         "border_radius": 5,
         "Button.Image": {
-            "color": cl("#FFFFFF"),
+            "color": cl("#FFFFFF30"),
             "image_url": cloud_image_path,
             "alignment": ui.Alignment.CENTER,
             "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
@@ -75,7 +75,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     global cloud_image_path
                     search_button_styles[i % IMAGES_PER_PAGE] = {
                         "Button.Image": {
-                            "color": cl("#FFFFFF"),
+                            "color": cl("#FFFFFF30"),
                             "image_url": cloud_image_path,
                             "alignment": ui.Alignment.CENTER,
                             "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
@@ -159,7 +159,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     global cloud_image_path
                     search_button_styles[i] = {
                         "Button.Image": {
-                            "color": cl("#FFFFFF"),
+                            "color": cl("#FFFFFF30"),
                             "image_url": cloud_image_path,
                             "alignment": ui.Alignment.CENTER,
                             "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
@@ -177,7 +177,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                 global cloud_image_path
                 search_button_styles[i] = {
                     "Button.Image": {
-                        "color": cl("#FFFFFF"),
+                        "color": cl("#FFFFFF30"),
                         "image_url": cloud_image_path,
                         "alignment": ui.Alignment.CENTER,
                         "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
@@ -213,7 +213,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     global cloud_image_path
                     project_button_styles[i % IMAGES_PER_PAGE] = {
                         "Button.Image": {
-                            "color": cl("#FFFFFF"),
+                            "color": cl("#FFFFFF30"),
                             "image_url": cloud_image_path,
                             "alignment": ui.Alignment.CENTER,
                             "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
@@ -313,7 +313,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     global cloud_image_path
                     project_button_styles[i] = {
                         "Button.Image": {
-                            "color": cl("#FFFFFF"),
+                            "color": cl("#FFFFFF30"),
                             "image_url": cloud_image_path,
                             "alignment": ui.Alignment.CENTER,
                             "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
@@ -329,25 +329,26 @@ class Echo3dSearchExtension(omni.ext.IExt):
             disabledStateCover.style = {"background_color": cl("#32343400")}
 
         # Display the UI
-        self._window = ui.Window("Echo3D", width=400, height=472)
+        self._window = ui.Window("Echo3D", width=400, height=478)
         with self._window.frame:
             with ui.VStack():
                 script_dir = os.path.dirname(os.path.abspath(__file__))
                 logo_image_filename = 'echo3D_Logo.png'
                 logo_image_path = os.path.join(script_dir, logo_image_filename)
+                ui.Spacer(height=5)
                 with ui.Frame(height=25):
                     ui.Image(logo_image_path)
-                ui.Spacer(height=5)
+                ui.Spacer(height=8)
                 with ui.HStack(height=20):
                     ui.Spacer(width=5)
-                    with ui.Frame(width=90):
+                    with ui.Frame(width=85):
                         ui.Label("API Key:")
                     apiKeyInput = ui.StringField()
                     ui.Spacer(width=5)
                 ui.Spacer(height=3)
                 with ui.HStack(height=20):
                     ui.Spacer(width=5)
-                    with ui.Frame(width=90):
+                    with ui.Frame(width=85):
                         ui.Label("Security Key:")
                     secKeyInput = ui.StringField()
                     with ui.Frame(width=5):
@@ -373,7 +374,15 @@ class Echo3dSearchExtension(omni.ext.IExt):
                         global project_image_widgets
                         with ui.HStack(height=80):
                             with ui.Frame(height=80, width=10):
-                                projectLeftArrow = ui.Button("<", clicked_fn=on_click_left_arrow_project, enabled=False)
+                                projectLeftArrow = ui.Button("<", clicked_fn=on_click_left_arrow_project, enabled=False,
+                                                             style={
+                                                                    ":disabled": {
+                                                                        "background_color": cl("#1f212460")
+                                                                    },
+                                                                    "Button.Label:disabled": {
+                                                                        "color": cl("#FFFFFF40")
+                                                                    }
+                                                                })
                             for i in range(IMAGES_PER_PAGE):
                                 with ui.Frame(height=80):
                                     project_image_widgets[i] = ui.Button("",
@@ -382,7 +391,15 @@ class Echo3dSearchExtension(omni.ext.IExt):
                                                                          style=project_button_styles[i], enabled=False)
                             with ui.Frame(height=80, width=10):
                                 projectRightArrow = ui.Button(">", clicked_fn=on_click_right_arrow_project, 
-                                                              enabled=False)
+                                                              enabled=False,
+                                                              style={
+                                                                    ":disabled": {
+                                                                        "background_color": cl("#1f212460")
+                                                                    },
+                                                                    "Button.Label:disabled": {
+                                                                        "color": cl("#FFFFFF40")
+                                                                    }
+                                                                })
                         ui.Spacer(height=10)
                         with ui.HStack(height=5):
                             ui.Spacer(width=5)
@@ -395,7 +412,15 @@ class Echo3dSearchExtension(omni.ext.IExt):
                         global search_image_widgets
                         with ui.HStack(height=80):
                             with ui.Frame(height=80, width=10):
-                                searchLeftArrow = ui.Button("<", clicked_fn=on_click_left_arrow_search, enabled=False)
+                                searchLeftArrow = ui.Button("<", clicked_fn=on_click_left_arrow_search, enabled=False,
+                                                            style={
+                                                                ":disabled": {
+                                                                    "background_color": cl("#1f212460")
+                                                                },
+                                                                "Button.Label:disabled": {
+                                                                    "color": cl("#FFFFFF40")
+                                                                }
+                                                            })
                             for i in range(IMAGES_PER_PAGE):
                                 with ui.Frame(height=80):
                                     search_image_widgets[i] = ui.Button("",
@@ -403,12 +428,20 @@ class Echo3dSearchExtension(omni.ext.IExt):
                                                                         on_click_search_image(index),
                                                                         style=search_button_styles[i], enabled=False)
                             with ui.Frame(height=80, width=10):
-                                searchRightArrow = ui.Button(">", clicked_fn=on_click_right_arrow_search, enabled=False)
+                                searchRightArrow = ui.Button(">", clicked_fn=on_click_right_arrow_search, enabled=False,
+                                                             style={
+                                                                ":disabled": {
+                                                                    "background_color": cl("#1f212460")
+                                                                },
+                                                                "Button.Label:disabled": {
+                                                                    "color": cl("#FFFFFF40")
+                                                                }
+                                                             })
 
                         ui.Spacer(height=10)
                         with ui.HStack(height=20):
                             ui.Spacer(width=5)
-                            with ui.Frame(width=90):
+                            with ui.Frame(width=85):
                                 ui.Label("Keywords:")
                             searchInput = ui.StringField(enabled=False)
                             with ui.Frame(width=5):
