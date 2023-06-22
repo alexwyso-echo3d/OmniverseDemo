@@ -168,19 +168,6 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     }
                     search_image_widgets[i].style = search_button_styles[i]
                     search_image_widgets[i].enabled = False
-
-            # Filter the project assets to reflect the search
-            # global projectJsonData
-            # projectJsonData = [entry for entry in projectJsonData
-            #                    if (entry["hologram"]["filename"].find(searchTerm) != -1)]
-            # global project_image_widgets
-            # for i in range(IMAGES_PER_PAGE):
-            #     if i < len(projectJsonData):
-            #         baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
-            #         imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
-            #         project_image_widgets[i].source_url = baseUrl + imageFilename
-            #     else:
-            #         project_image_widgets[i].source_url = ""
   
         # Clear all the thumbnails
         def on_reset_search():
@@ -336,8 +323,13 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     project_image_widgets[i].style = project_button_styles[i]
                     project_image_widgets[i].enabled = False
 
+            searchButton.enabled = True
+            clearButton.enabled = True
+            searchInput.enabled = True
+            disabledStateCover.style = {"background_color": cl("#32343400")}
+
         # Display the UI
-        self._window = ui.Window("Echo3D", width=400, height=475)
+        self._window = ui.Window("Echo3D", width=400, height=472)
         with self._window.frame:
             with ui.VStack():
                 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -364,66 +356,71 @@ class Echo3dSearchExtension(omni.ext.IExt):
                 with ui.Frame(height=20):
                     ui.Button("Load Project", clicked_fn=on_click_load_project)
                 ui.Spacer(height=3)
-                with ui.HStack(height=5):
-                    ui.Spacer(width=5)
-                    ui.Line(name='default', style={"color": cl.gray})
-                    ui.Spacer(width=5)
-                ui.Spacer(height=3)
-                with ui.HStack(height=20):
-                    ui.Spacer(width=5)
-                    ui.Label("Assets in Project:")
 
-                apiKeyInput.model.set_value("summer-darkness-5935")
-                secKeyInput.model.set_value("T8tbDSXApoJ1dQLnG0b3qPyY")
-                global project_image_widgets
-                with ui.HStack(height=80):
-                    with ui.Frame(height=80, width=10):
-                        projectLeftArrow = ui.Button("<", clicked_fn=on_click_left_arrow_project, enabled=False)
-                    for i in range(IMAGES_PER_PAGE):
-                        with ui.Frame(height=80):
-                            project_image_widgets[i] = ui.Button("",
-                                                                 clicked_fn=lambda index=i:
-                                                                 on_click_project_image(index),
-                                                                 style=project_button_styles[i], enabled=False)
-                    with ui.Frame(height=80, width=10):
-                        projectRightArrow = ui.Button(">", clicked_fn=on_click_right_arrow_project, enabled=False)
-                ui.Spacer(height=10)
-                with ui.HStack(height=5):
-                    ui.Spacer(width=5)
-                    ui.Line(name='default', style={"color": cl.gray})
-                    ui.Spacer(width=5)
-                ui.Spacer(height=5)
-                with ui.HStack(height=20):
-                    ui.Spacer(width=5)
-                    ui.Label("Public Search Results:")
-                global search_image_widgets
-                with ui.HStack(height=80):
-                    with ui.Frame(height=80, width=10):
-                        searchLeftArrow = ui.Button("<", clicked_fn=on_click_left_arrow_search, enabled=False)
-                    for i in range(IMAGES_PER_PAGE):
-                        with ui.Frame(height=80):
-                            search_image_widgets[i] = ui.Button("",
-                                                                clicked_fn=lambda index=i:
-                                                                on_click_search_image(index),
-                                                                style=search_button_styles[i], enabled=False)
-                    with ui.Frame(height=80, width=10):
-                        searchRightArrow = ui.Button(">", clicked_fn=on_click_right_arrow_search)
+                with ui.ZStack():
+                    with ui.VStack():
+                        with ui.HStack(height=5):
+                            ui.Spacer(width=5)
+                            ui.Line(name='default', style={"color": cl.gray})
+                            ui.Spacer(width=5)
+                        ui.Spacer(height=3)
+                        with ui.HStack(height=20):
+                            ui.Spacer(width=5)
+                            ui.Label("Assets in Project:")
 
-                ui.Spacer(height=10)
-                with ui.HStack(height=20):
-                    ui.Spacer(width=5)
-                    with ui.Frame(width=90):
-                        ui.Label("Keywords:")
-                    searchInput = ui.StringField()
-                    searchInput.model.set_value("Dog")
-                    with ui.Frame(width=5):
-                        ui.Label("")
-                ui.Spacer(height=5)
-                with ui.VStack():
-                    with ui.Frame(height=20):
-                        ui.Button("Search", clicked_fn=on_click_search)
-                    with ui.Frame(height=20):
-                        ui.Button("Clear", clicked_fn=on_reset_search)
+                        apiKeyInput.model.set_value("summer-darkness-5935")
+                        secKeyInput.model.set_value("T8tbDSXApoJ1dQLnG0b3qPyY")
+                        global project_image_widgets
+                        with ui.HStack(height=80):
+                            with ui.Frame(height=80, width=10):
+                                projectLeftArrow = ui.Button("<", clicked_fn=on_click_left_arrow_project, enabled=False)
+                            for i in range(IMAGES_PER_PAGE):
+                                with ui.Frame(height=80):
+                                    project_image_widgets[i] = ui.Button("",
+                                                                         clicked_fn=lambda index=i:
+                                                                         on_click_project_image(index),
+                                                                         style=project_button_styles[i], enabled=False)
+                            with ui.Frame(height=80, width=10):
+                                projectRightArrow = ui.Button(">", clicked_fn=on_click_right_arrow_project, 
+                                                              enabled=False)
+                        ui.Spacer(height=10)
+                        with ui.HStack(height=5):
+                            ui.Spacer(width=5)
+                            ui.Line(name='default', style={"color": cl.gray})
+                            ui.Spacer(width=5)
+                        ui.Spacer(height=5)
+                        with ui.HStack(height=20):
+                            ui.Spacer(width=5)
+                            ui.Label("Public Search Results:")
+                        global search_image_widgets
+                        with ui.HStack(height=80):
+                            with ui.Frame(height=80, width=10):
+                                searchLeftArrow = ui.Button("<", clicked_fn=on_click_left_arrow_search, enabled=False)
+                            for i in range(IMAGES_PER_PAGE):
+                                with ui.Frame(height=80):
+                                    search_image_widgets[i] = ui.Button("",
+                                                                        clicked_fn=lambda index=i:
+                                                                        on_click_search_image(index),
+                                                                        style=search_button_styles[i], enabled=False)
+                            with ui.Frame(height=80, width=10):
+                                searchRightArrow = ui.Button(">", clicked_fn=on_click_right_arrow_search, enabled=False)
+
+                        ui.Spacer(height=10)
+                        with ui.HStack(height=20):
+                            ui.Spacer(width=5)
+                            with ui.Frame(width=90):
+                                ui.Label("Keywords:")
+                            searchInput = ui.StringField(enabled=False)
+                            with ui.Frame(width=5):
+                                ui.Label("")
+                        ui.Spacer(height=5)
+                        with ui.VStack():
+                            with ui.Frame(height=20):
+                                searchButton = ui.Button("Search", clicked_fn=on_click_search, enabled=False)
+                            with ui.Frame(height=20):
+                                clearButton = ui.Button("Clear", clicked_fn=on_reset_search, enabled=False)
+
+                    disabledStateCover = ui.Rectangle(style={"background_color": cl("#323434A0")}, height=500)
 
     def on_shutdown(self):
         folder_path = os.path.join(os.path.dirname(__file__), "temp_files")
