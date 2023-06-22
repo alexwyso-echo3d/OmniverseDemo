@@ -18,13 +18,24 @@ logo_image_filename = 'echo3D_Logo.png'
 logo_image_path = os.path.join(script_dir, logo_image_filename)
 cloud_image_filename = 'cloud_background_transparent.png'
 cloud_image_path = os.path.join(script_dir, cloud_image_filename)
-styles = [
+project_button_styles = [
     {
         "border_radius": 5,
         "Button.Image": {
             "color": cl("#FFFFFF"),
             "image_url": cloud_image_path,
-            "alignment": ui.Alignment.CENTER
+            "alignment": ui.Alignment.CENTER,
+            "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
+        }
+    } for _ in range(IMAGES_PER_PAGE)]
+search_button_styles = [
+    {
+        "border_radius": 5,
+        "Button.Image": {
+            "color": cl("#FFFFFF"),
+            "image_url": cloud_image_path,
+            "alignment": ui.Alignment.CENTER,
+            "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
         }
     } for _ in range(IMAGES_PER_PAGE)]
 
@@ -50,13 +61,36 @@ class Echo3dSearchExtension(omni.ext.IExt):
             end_index = start_index + IMAGES_PER_PAGE
             for i in range(start_index, end_index):
                 if i < len(searchJsonData):
-                    search_image_widgets[i % IMAGES_PER_PAGE].source_url = searchJsonData[i]["thumbnail"]
+                    search_button_styles[i % IMAGES_PER_PAGE] = {"Button.Image": {
+                                        "color": cl("#FFFFFF"),
+                                        "image_url": searchJsonData[i]["thumbnail"],
+                                        "alignment": ui.Alignment.CENTER,
+                                        "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
+                                    },
+                                    "border_radius": 5
+                                    }
+                    search_image_widgets[i % IMAGES_PER_PAGE].style = search_button_styles[i % IMAGES_PER_PAGE]
+                    search_image_widgets[i % IMAGES_PER_PAGE].enabled = True
                 else:
-                    search_image_widgets[i % IMAGES_PER_PAGE].source_url = ""
+                    global cloud_image_path
+                    search_button_styles[i % IMAGES_PER_PAGE] = {
+                        "Button.Image": {
+                            "color": cl("#FFFFFF"),
+                            "image_url": cloud_image_path,
+                            "alignment": ui.Alignment.CENTER,
+                            "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
+                        },
+                        "border_radius": 5
+                    }
+                    search_image_widgets[i % IMAGES_PER_PAGE].style = search_button_styles[i % IMAGES_PER_PAGE]
+                    search_image_widgets[i % IMAGES_PER_PAGE].enabled = False
 
         def on_click_left_arrow_search():
             global current_search_page
             current_search_page -= 1
+            if (current_search_page == 0):
+                searchLeftArrow.enabled = False
+            searchRightArrow.enabled = True
             global searchJsonData
             update_search_images(searchJsonData)
 
@@ -64,7 +98,31 @@ class Echo3dSearchExtension(omni.ext.IExt):
             global current_search_page
             current_search_page += 1
             global searchJsonData
+            if ((current_search_page + 1) * IMAGES_PER_PAGE >= len(searchJsonData)):
+                searchRightArrow.enabled = False
+            searchLeftArrow.enabled = True
             update_search_images(searchJsonData)
+
+        def on_click_search_image(index):
+            global searchJsonData
+            global current_search_page
+            selectedEntry = searchJsonData[current_search_page * IMAGES_PER_PAGE + index]
+            url = selectedEntry["glb_location_url"]
+            filename = selectedEntry["name"] + '.glb'
+            
+            folder_path = os.path.join(os.path.dirname(__file__), "temp_files")
+            file_path = os.path.join(folder_path, filename)
+
+            response = requests.get(url)
+            response.raise_for_status()
+
+            with open(file_path, "wb") as file:
+                file.write(response.content)
+
+            omni.kit.commands.execute('CreateReferenceCommand',
+                                      path_to='/World/' + os.path.splitext(filename)[0].replace(" ", "_"),
+                                      asset_path=file_path,
+                                      usd_context=omni.usd.get_context())
 
         # Call the echo3D /search endpoint to get models and display the first 7 resulting thumbnails
         def on_click_search():
@@ -81,13 +139,35 @@ class Echo3dSearchExtension(omni.ext.IExt):
             librarySearchRequest = requests.post(url=api_url, data=data)
             global searchJsonData
             searchJsonData = librarySearchRequest.json()
-            # searchLabel.text = "Showing results for: '" + searchTerm + "'"
             global search_image_widgets
+            global search_button_styles
             for i in range(IMAGES_PER_PAGE):
                 if i < len(searchJsonData):
-                    search_image_widgets[i].source_url = librarySearchRequest.json()[i]["thumbnail"]
+                    search_button_styles[i] = {
+                        "Button.Image": {
+                            "color": cl("#FFFFFF"),
+                            "image_url": librarySearchRequest.json()[i]["thumbnail"],
+                            "alignment": ui.Alignment.CENTER,
+                            "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
+                        },
+                        "border_radius": 5
+                    }
+                    search_image_widgets[i].style = search_button_styles[i]
+                    search_image_widgets[i].enabled = True
+                    searchRightArrow.enabled = True
                 else:
-                    search_image_widgets[i].source_url = ""
+                    global cloud_image_path
+                    search_button_styles[i] = {
+                        "Button.Image": {
+                            "color": cl("#FFFFFF"),
+                            "image_url": cloud_image_path,
+                            "alignment": ui.Alignment.CENTER,
+                            "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
+                        },
+                        "border_radius": 5
+                    }
+                    search_image_widgets[i].style = search_button_styles[i]
+                    search_image_widgets[i].enabled = False
 
             # Filter the project assets to reflect the search
             # global projectJsonData
@@ -107,8 +187,18 @@ class Echo3dSearchExtension(omni.ext.IExt):
             searchInput.model.set_value("")
             global search_image_widgets
             for i in range(IMAGES_PER_PAGE):
-                search_image_widgets[i].source_url = ""
-            on_click_load_project()
+                global cloud_image_path
+                search_button_styles[i] = {
+                    "Button.Image": {
+                        "color": cl("#FFFFFF"),
+                        "image_url": cloud_image_path,
+                        "alignment": ui.Alignment.CENTER,
+                        "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
+                    },
+                    "border_radius": 5
+                }
+                search_image_widgets[i].style = search_button_styles[i]
+                search_image_widgets[i].enabled = False
 
         #################################################
         #     Define Functions for Project Querying     #
@@ -122,7 +212,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                 if i < len(projectJsonData):
                     baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
                     imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
-                    styles[i % IMAGES_PER_PAGE] = {"Button.Image": {
+                    project_button_styles[i % IMAGES_PER_PAGE] = {"Button.Image": {
                                         "color": cl("#FFFFFF"),
                                         "image_url": baseUrl + imageFilename,
                                         "alignment": ui.Alignment.CENTER,
@@ -130,19 +220,20 @@ class Echo3dSearchExtension(omni.ext.IExt):
                                     },
                                     "border_radius": 5
                                     }
-                    project_image_widgets[i % IMAGES_PER_PAGE].style = styles[i % IMAGES_PER_PAGE]
+                    project_image_widgets[i % IMAGES_PER_PAGE].style = project_button_styles[i % IMAGES_PER_PAGE]
                     project_image_widgets[i % IMAGES_PER_PAGE].enabled = True
                 else:
                     global cloud_image_path
-                    styles[i % IMAGES_PER_PAGE] = {"Button.Image": {
-                        "color": cl("#FFFFFF"),
-                        "image_url": cloud_image_path,
-                        "alignment": ui.Alignment.CENTER,
-                        "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
-                    },
-                    "border_radius": 5
+                    project_button_styles[i % IMAGES_PER_PAGE] = {
+                        "Button.Image": {
+                            "color": cl("#FFFFFF"),
+                            "image_url": cloud_image_path,
+                            "alignment": ui.Alignment.CENTER,
+                            "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
+                        },
+                        "border_radius": 5
                     }
-                    project_image_widgets[i % IMAGES_PER_PAGE].style = styles[i % IMAGES_PER_PAGE]
+                    project_image_widgets[i % IMAGES_PER_PAGE].style = project_button_styles[i % IMAGES_PER_PAGE]
                     project_image_widgets[i % IMAGES_PER_PAGE].enabled = False
 
         def on_click_left_arrow_project():
@@ -214,12 +305,12 @@ class Echo3dSearchExtension(omni.ext.IExt):
             global projectJsonData
             projectJsonData = values
             global project_image_widgets
-            global styles
+            global project_button_styles
             for i in range(IMAGES_PER_PAGE):
                 if i < len(projectJsonData):
                     baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
                     imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
-                    styles[i] = {
+                    project_button_styles[i] = {
                         "Button.Image": {
                             "color": cl("#FFFFFF"),
                             "image_url": baseUrl + imageFilename,
@@ -228,11 +319,21 @@ class Echo3dSearchExtension(omni.ext.IExt):
                         },
                         "border_radius": 5
                     }
-                    project_image_widgets[i].style = styles[i]
+                    project_image_widgets[i].style = project_button_styles[i]
                     project_image_widgets[i].enabled = True
                     projectRightArrow.enabled = True
                 else:
-                    project_image_widgets[i].style = {}
+                    global cloud_image_path
+                    project_button_styles[i] = {
+                        "Button.Image": {
+                            "color": cl("#FFFFFF"),
+                            "image_url": cloud_image_path,
+                            "alignment": ui.Alignment.CENTER,
+                            "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
+                        },
+                        "border_radius": 5
+                    }
+                    project_image_widgets[i].style = project_button_styles[i]
                     project_image_widgets[i].enabled = False
 
         # Display the UI
@@ -283,7 +384,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                             project_image_widgets[i] = ui.Button("",
                                                                  clicked_fn=lambda index=i:
                                                                  on_click_project_image(index),
-                                                                 style=styles[i], enabled=False)
+                                                                 style=project_button_styles[i], enabled=False)
                     with ui.Frame(height=80, width=10):
                         projectRightArrow = ui.Button(">", clicked_fn=on_click_right_arrow_project, enabled=False)
                 ui.Spacer(height=10)
@@ -297,16 +398,17 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     ui.Label("Public Search Results:")
                 global search_image_widgets
                 with ui.HStack(height=80):
-                    with ui.Frame(width=10):
-                        ui.Button("<", clicked_fn=on_click_left_arrow_search)
-                    ui.Spacer(width=5)
+                    with ui.Frame(height=80, width=10):
+                        searchLeftArrow = ui.Button("<", clicked_fn=on_click_left_arrow_search, enabled=False)
                     for i in range(IMAGES_PER_PAGE):
-                        search_image_widgets[i] = ui.Image("", fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP,
-                                                           alignment=ui.Alignment.CENTER,
-                                                           style={'border_radius': 5, 'border_width': 0})
-                        ui.Spacer(width=5)
-                    with ui.Frame(width=10):
-                        ui.Button(">", clicked_fn=on_click_right_arrow_search)
+                        with ui.Frame(height=80):
+                            search_image_widgets[i] = ui.Button("",
+                                                                clicked_fn=lambda index=i:
+                                                                on_click_search_image(index),
+                                                                style=search_button_styles[i], enabled=False)
+                    with ui.Frame(height=80, width=10):
+                        searchRightArrow = ui.Button(">", clicked_fn=on_click_right_arrow_search)
+
                 ui.Spacer(height=10)
                 with ui.HStack(height=20):
                     ui.Spacer(width=5)
