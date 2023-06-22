@@ -5,19 +5,25 @@ import omni.kit.commands
 from pip_prebundle import requests
 from omni.ui import color as cl
 
-# GLOBAL VARIABLES
+### GLOBAL VARIABLES ###
 IMAGES_PER_PAGE = 3
 current_search_page = 0
 current_project_page = 0
-search_image_widgets = [ui.Image() for _ in range(IMAGES_PER_PAGE)]
-project_image_widgets = [ui.Button() for _ in range(IMAGES_PER_PAGE)]
 searchJsonData = []
 projectJsonData = []
+
+# UI Elements for the thumbnails
+search_image_widgets = [ui.Image() for _ in range(IMAGES_PER_PAGE)]
+project_image_widgets = [ui.Button() for _ in range(IMAGES_PER_PAGE)]
+
+# Hardcoded echo3D images
 script_dir = os.path.dirname(os.path.abspath(__file__))
 logo_image_filename = 'echo3D_Logo.png'
 logo_image_path = os.path.join(script_dir, logo_image_filename)
 cloud_image_filename = 'cloud_background_transparent.png'
 cloud_image_path = os.path.join(script_dir, cloud_image_filename)
+
+# State variables to hold the style associated with each thumbnail
 project_button_styles = [
     {
         "border_radius": 5,
@@ -85,6 +91,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     search_image_widgets[i % IMAGES_PER_PAGE].style = search_button_styles[i % IMAGES_PER_PAGE]
                     search_image_widgets[i % IMAGES_PER_PAGE].enabled = False
 
+        # Update state variables to reflect change of page, disable arrow buttons, update the thumbnails shown
         def on_click_left_arrow_search():
             global current_search_page
             current_search_page -= 1
@@ -103,6 +110,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
             searchLeftArrow.enabled = True
             update_search_images(searchJsonData)
 
+        # When a user clicks a thumbnail, download the corresponding .glb file and instantiate it in the scene
         def on_click_search_image(index):
             global searchJsonData
             global current_search_page
@@ -124,7 +132,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                                       asset_path=file_path,
                                       usd_context=omni.usd.get_context())
 
-        # Call the echo3D /search endpoint to get models and display the first 7 resulting thumbnails
+        # Call the echo3D /search endpoint to get models and display the resulting thumbnails
         def on_click_search():
             searchTerm = searchInput.model.get_value_as_string()
 
@@ -169,7 +177,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     search_image_widgets[i].style = search_button_styles[i]
                     search_image_widgets[i].enabled = False
   
-        # Clear all the thumbnails
+        # Clear all the thumbnails and search term
         def on_reset_search():
             searchInput.model.set_value("")
             global search_image_widgets
@@ -223,6 +231,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     project_image_widgets[i % IMAGES_PER_PAGE].style = project_button_styles[i % IMAGES_PER_PAGE]
                     project_image_widgets[i % IMAGES_PER_PAGE].enabled = False
 
+        # Update state variables to reflect change of page, disable arrow buttons, update the thumbnails shown
         def on_click_left_arrow_project():
             global current_project_page
             current_project_page -= 1
@@ -241,6 +250,8 @@ class Echo3dSearchExtension(omni.ext.IExt):
             projectLeftArrow.enabled = True
             update_project_images(projectJsonData)
 
+        # When a user clicks a thumbnail, download the corresponding .usdz file if it exists and 
+        # instantiate it in the scene. Otherwise use the .glb file
         def on_click_project_image(index):
             global projectJsonData
             global current_project_page
@@ -260,11 +271,9 @@ class Echo3dSearchExtension(omni.ext.IExt):
             folder_path = os.path.join(os.path.dirname(__file__), "temp_files")
             file_path = os.path.join(folder_path, filename)
             cachedUpload = os.path.exists(file_path)
-
             if (not cachedUpload):
                 apiKey = apiKeyInput.model.get_value_as_string()
                 secKey = secKeyInput.model.get_value_as_string()
-
                 url = 'https://api.echo3d.com/query?key=' + apiKey + '&secKey=' + secKey + '&file=' + storageId
 
                 response = requests.get(url)
@@ -278,7 +287,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                                       asset_path=file_path,
                                       usd_context=omni.usd.get_context())
 
-        # Call the echo3D /query endpoint to get models and display the first 7 resulting thumbnails
+        # Call the echo3D /query endpoint to get models and display the resulting thumbnails
         def on_click_load_project():
             api_url = "https://api.echo3d.com/query"
             data = {
@@ -358,6 +367,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     ui.Button("Load Project", clicked_fn=on_click_load_project)
                 ui.Spacer(height=3)
 
+                # Overlay the disabled elements to indicate their state
                 with ui.ZStack():
                     with ui.VStack():
                         with ui.HStack(height=5):
@@ -456,12 +466,9 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     disabledStateCover = ui.Rectangle(style={"background_color": cl("#323434A0")}, height=500)
 
     def on_shutdown(self):
+        # Clear all temporary download files
         folder_path = os.path.join(os.path.dirname(__file__), "temp_files")
-
-        # Get a list of all files in the temp folder
         file_list = os.listdir(folder_path)
-
-        # Iterate over the file list and delete each file
         for file_name in file_list:
             file_path = os.path.join(folder_path, file_name)
             if os.path.isfile(file_path):
