@@ -127,6 +127,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                                         "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
                                     }}
                     project_image_widgets[i % IMAGES_PER_PAGE].style = styles[i % IMAGES_PER_PAGE]
+                    project_image_widgets[i % IMAGES_PER_PAGE].enabled = True
                 else:
                     global cloud_image_path
                     styles[i % IMAGES_PER_PAGE] = {"Button.Image": {
@@ -136,10 +137,14 @@ class Echo3dSearchExtension(omni.ext.IExt):
                         "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
                     }}
                     project_image_widgets[i % IMAGES_PER_PAGE].style = styles[i % IMAGES_PER_PAGE]
+                    project_image_widgets[i % IMAGES_PER_PAGE].enabled = False
 
         def on_click_left_arrow_project():
             global current_project_page
             current_project_page -= 1
+            if (current_project_page == 0):
+                projectLeftArrow.enabled = False
+            projectRightArrow.enabled = True
             global projectJsonData
             update_project_images(projectJsonData)
 
@@ -147,21 +152,27 @@ class Echo3dSearchExtension(omni.ext.IExt):
             global current_project_page
             current_project_page += 1
             global projectJsonData
+            if ((current_project_page + 1) * IMAGES_PER_PAGE >= len(projectJsonData)):
+                projectRightArrow.enabled = False
+            projectLeftArrow.enabled = True
             update_project_images(projectJsonData)
 
         def on_click_project_image(index):
             global projectJsonData
             global current_project_page
-            selectedEntry = projectJsonData[current_project_page * IMAGES_PER_PAGE + index]["additionalData"]
-            usdzStorageID = selectedEntry["usdzHologramStorageID"]
-            usdzFilename = selectedEntry["usdzHologramStorageFilename"]
+            selectedEntry = projectJsonData[current_project_page * IMAGES_PER_PAGE + index]
+            usdzStorageID = selectedEntry["additionalData"]["usdzHologramStorageID"]
+            usdzFilename = selectedEntry["additionalData"]["usdzHologramStorageFilename"]
 
             if (usdzFilename):
-                open_usdz_from_filename(usdzFilename, usdzStorageID)
+                open_project_asset_from_filename(usdzFilename, usdzStorageID)
             else:
-                print("NO USDZ")
+                glbStorageID = selectedEntry["hologram"]["storageID"]
+                glbFilename = selectedEntry["hologram"]["filename"]
+                open_project_asset_from_filename(glbFilename, glbStorageID)
 
-        def open_usdz_from_filename(filename, storageId):
+        # Directly instantiate previously cached files from the session, or download them from the echo3D API
+        def open_project_asset_from_filename(filename, storageId):
             folder_path = os.path.join(os.path.dirname(__file__), "temp_files")
             file_path = os.path.join(folder_path, filename)
             cachedUpload = os.path.exists(file_path)
@@ -177,8 +188,6 @@ class Echo3dSearchExtension(omni.ext.IExt):
 
                 with open(file_path, "wb") as file:
                     file.write(response.content)
-            else:
-                print('exists')
 
             omni.kit.commands.execute('CreateReferenceCommand',
                                       path_to='/World/' + os.path.splitext(filename)[0],
@@ -211,11 +220,14 @@ class Echo3dSearchExtension(omni.ext.IExt):
                                         "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
                                     }}
                     project_image_widgets[i].style = styles[i]
+                    project_image_widgets[i].enabled = True
+                    projectRightArrow.enabled = True
                 else:
                     project_image_widgets[i].style = {}
+                    project_image_widgets[i].enabled = False
 
         # Display the UI
-        self._window = ui.Window("Echo3D", width=400, height=465)
+        self._window = ui.Window("Echo3D", width=400, height=475)
         with self._window.frame:
             with ui.VStack():
                 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -256,17 +268,17 @@ class Echo3dSearchExtension(omni.ext.IExt):
                 global project_image_widgets
                 with ui.HStack(height=80):
                     with ui.Frame(height=80, width=10):
-                        ui.Button("<", clicked_fn=on_click_left_arrow_project)
+                        projectLeftArrow = ui.Button("<", clicked_fn=on_click_left_arrow_project, enabled=False)
                     ui.Spacer(width=5)
                     for i in range(IMAGES_PER_PAGE):
                         with ui.Frame(height=80):
                             project_image_widgets[i] = ui.Button("",
                                                                  clicked_fn=lambda index=i:
                                                                  on_click_project_image(index),
-                                                                 style=styles[i])
+                                                                 style=styles[i], enabled=False)
                         ui.Spacer(width=5)
                     with ui.Frame(height=80, width=10):
-                        ui.Button(">", clicked_fn=on_click_right_arrow_project)
+                        projectRightArrow = ui.Button(">", clicked_fn=on_click_right_arrow_project, enabled=False)
                 ui.Spacer(height=10)
                 with ui.HStack(height=5):
                     ui.Spacer(width=5)
