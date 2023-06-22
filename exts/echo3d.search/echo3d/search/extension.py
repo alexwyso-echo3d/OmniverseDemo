@@ -10,9 +10,21 @@ IMAGES_PER_PAGE = 3
 current_search_page = 0
 current_project_page = 0
 search_image_widgets = [ui.Image() for _ in range(IMAGES_PER_PAGE)]
-project_image_widgets = [ui.Image() for _ in range(IMAGES_PER_PAGE)]
+project_image_widgets = [ui.Button() for _ in range(IMAGES_PER_PAGE)]
 searchJsonData = []
 projectJsonData = []
+script_dir = os.path.dirname(os.path.abspath(__file__))
+logo_image_filename = 'echo3D_Logo.png'
+logo_image_path = os.path.join(script_dir, logo_image_filename)
+cloud_image_filename = 'cloud_background_transparent.png'
+cloud_image_path = os.path.join(script_dir, cloud_image_filename)
+styles = [{
+    "Button.Image": {
+        "color": cl("#FFFFFF"),
+        "image_url": cloud_image_path,
+        "alignment": ui.Alignment.CENTER,
+    }
+} for _ in range(IMAGES_PER_PAGE)]
 
 
 ###########################################################################################################
@@ -76,18 +88,17 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     search_image_widgets[i].source_url = ""
 
             # Filter the project assets to reflect the search
-            global projectJsonData
-            projectJsonData = [entry for entry in projectJsonData
-                               if (entry["hologram"]["filename"].find(searchTerm) != -1)]
-            
-            global project_image_widgets
-            for i in range(IMAGES_PER_PAGE):
-                if i < len(projectJsonData):
-                    baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
-                    imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
-                    project_image_widgets[i].source_url = baseUrl + imageFilename
-                else:
-                    project_image_widgets[i].source_url = ""
+            # global projectJsonData
+            # projectJsonData = [entry for entry in projectJsonData
+            #                    if (entry["hologram"]["filename"].find(searchTerm) != -1)]
+            # global project_image_widgets
+            # for i in range(IMAGES_PER_PAGE):
+            #     if i < len(projectJsonData):
+            #         baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
+            #         imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
+            #         project_image_widgets[i].source_url = baseUrl + imageFilename
+            #     else:
+            #         project_image_widgets[i].source_url = ""
   
         # Clear all the thumbnails
         def on_reset_search():
@@ -109,9 +120,22 @@ class Echo3dSearchExtension(omni.ext.IExt):
                 if i < len(projectJsonData):
                     baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
                     imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
-                    project_image_widgets[i % IMAGES_PER_PAGE].source_url = baseUrl + imageFilename
+                    styles[i % IMAGES_PER_PAGE] = {"Button.Image": {
+                                        "color": cl("#FFFFFF"),
+                                        "image_url": baseUrl + imageFilename,
+                                        "alignment": ui.Alignment.CENTER,
+                                        "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
+                                    }}
+                    project_image_widgets[i % IMAGES_PER_PAGE].style = styles[i % IMAGES_PER_PAGE]
                 else:
-                    project_image_widgets[i % IMAGES_PER_PAGE].source_url = ""
+                    global cloud_image_path
+                    styles[i % IMAGES_PER_PAGE] = {"Button.Image": {
+                        "color": cl("#FFFFFF"),
+                        "image_url": cloud_image_path,
+                        "alignment": ui.Alignment.CENTER,
+                        "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
+                    }}
+                    project_image_widgets[i % IMAGES_PER_PAGE].style = styles[i % IMAGES_PER_PAGE]
 
         def on_click_left_arrow_project():
             global current_project_page
@@ -124,6 +148,42 @@ class Echo3dSearchExtension(omni.ext.IExt):
             current_project_page += 1
             global projectJsonData
             update_project_images(projectJsonData)
+
+        def on_click_project_image(index):
+            global projectJsonData
+            global current_project_page
+            selectedEntry = projectJsonData[current_project_page * IMAGES_PER_PAGE + index]["additionalData"]
+            usdzStorageID = selectedEntry["usdzHologramStorageID"]
+            usdzFilename = selectedEntry["usdzHologramStorageFilename"]
+
+            if (usdzFilename):
+                open_usdz_from_filename(usdzFilename, usdzStorageID)
+            else:
+                print("NO USDZ")
+
+        def open_usdz_from_filename(filename, storageId):
+            folder_path = os.path.join(os.path.dirname(__file__), "temp_files")
+            file_path = os.path.join(folder_path, filename)
+            cachedUpload = os.path.exists(file_path)
+
+            if (not cachedUpload):
+                apiKey = apiKeyInput.model.get_value_as_string()
+                secKey = secKeyInput.model.get_value_as_string()
+
+                url = 'https://api.echo3d.com/query?key=' + apiKey + '&secKey=' + secKey + '&file=' + storageId
+
+                response = requests.get(url)
+                response.raise_for_status()
+
+                with open(file_path, "wb") as file:
+                    file.write(response.content)
+            else:
+                print('exists')
+
+            omni.kit.commands.execute('CreateReferenceCommand',
+                                      path_to='/World/' + os.path.splitext(filename)[0],
+                                      asset_path=file_path,
+                                      usd_context=omni.usd.get_context())
 
         # Call the echo3D /query endpoint to get models and display the first 7 resulting thumbnails
         def on_click_load_project():
@@ -139,23 +199,30 @@ class Echo3dSearchExtension(omni.ext.IExt):
             global projectJsonData
             projectJsonData = values
             global project_image_widgets
+            global styles
             for i in range(IMAGES_PER_PAGE):
                 if i < len(projectJsonData):
                     baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
                     imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
-                    project_image_widgets[i].source_url = baseUrl + imageFilename
+                    styles[i] = {"Button.Image": {
+                                        "color": cl("#FFFFFF"),
+                                        "image_url": baseUrl + imageFilename,
+                                        "alignment": ui.Alignment.CENTER,
+                                        "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
+                                    }}
+                    project_image_widgets[i].style = styles[i]
                 else:
-                    project_image_widgets[i].source_url = ""
+                    project_image_widgets[i].style = {}
 
         # Display the UI
         self._window = ui.Window("Echo3D", width=400, height=465)
         with self._window.frame:
             with ui.VStack():
                 script_dir = os.path.dirname(os.path.abspath(__file__))
-                image_filename = 'echo3D_Logo.png'
-                image_path = os.path.join(script_dir, image_filename)
+                logo_image_filename = 'echo3D_Logo.png'
+                logo_image_path = os.path.join(script_dir, logo_image_filename)
                 with ui.Frame(height=25):
-                    ui.Image(image_path)
+                    ui.Image(logo_image_path)
                 ui.Spacer(height=5)
                 with ui.HStack(height=20):
                     ui.Spacer(width=5)
@@ -193,9 +260,10 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     ui.Spacer(width=5)
                     for i in range(IMAGES_PER_PAGE):
                         with ui.Frame(height=80):
-                            project_image_widgets[i] = ui.Image("", fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP,
-                                                                alignment=ui.Alignment.CENTER,
-                                                                style={'border_radius': 5})
+                            project_image_widgets[i] = ui.Button("",
+                                                                 clicked_fn=lambda index=i:
+                                                                 on_click_project_image(index),
+                                                                 style=styles[i])
                         ui.Spacer(width=5)
                     with ui.Frame(height=80, width=10):
                         ui.Button(">", clicked_fn=on_click_right_arrow_project)
@@ -216,7 +284,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     for i in range(IMAGES_PER_PAGE):
                         search_image_widgets[i] = ui.Image("", fill_policy=ui.FillPolicy.PRESERVE_ASPECT_CROP,
                                                            alignment=ui.Alignment.CENTER,
-                                                           style={'border_radius': 5})
+                                                           style={'border_radius': 5, 'border_width': 0})
                         ui.Spacer(width=5)
                     with ui.Frame(width=10):
                         ui.Button(">", clicked_fn=on_click_right_arrow_search)
@@ -237,4 +305,15 @@ class Echo3dSearchExtension(omni.ext.IExt):
                         ui.Button("Clear", clicked_fn=on_reset_search)
 
     def on_shutdown(self):
+        folder_path = os.path.join(os.path.dirname(__file__), "temp_files")
+
+        # Get a list of all files in the temp folder
+        file_list = os.listdir(folder_path)
+
+        # Iterate over the file list and delete each file
+        for file_name in file_list:
+            file_path = os.path.join(folder_path, file_name)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+
         print("[echo3D] echo3D shutdown")
