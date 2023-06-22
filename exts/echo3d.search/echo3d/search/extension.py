@@ -18,13 +18,15 @@ logo_image_filename = 'echo3D_Logo.png'
 logo_image_path = os.path.join(script_dir, logo_image_filename)
 cloud_image_filename = 'cloud_background_transparent.png'
 cloud_image_path = os.path.join(script_dir, cloud_image_filename)
-styles = [{
-    "Button.Image": {
-        "color": cl("#FFFFFF"),
-        "image_url": cloud_image_path,
-        "alignment": ui.Alignment.CENTER,
-    }
-} for _ in range(IMAGES_PER_PAGE)]
+styles = [
+    {
+        "border_radius": 5,
+        "Button.Image": {
+            "color": cl("#FFFFFF"),
+            "image_url": cloud_image_path,
+            "alignment": ui.Alignment.CENTER
+        }
+    } for _ in range(IMAGES_PER_PAGE)]
 
 
 ###########################################################################################################
@@ -125,7 +127,9 @@ class Echo3dSearchExtension(omni.ext.IExt):
                                         "image_url": baseUrl + imageFilename,
                                         "alignment": ui.Alignment.CENTER,
                                         "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
-                                    }}
+                                    },
+                                    "border_radius": 5
+                                    }
                     project_image_widgets[i % IMAGES_PER_PAGE].style = styles[i % IMAGES_PER_PAGE]
                     project_image_widgets[i % IMAGES_PER_PAGE].enabled = True
                 else:
@@ -135,7 +139,9 @@ class Echo3dSearchExtension(omni.ext.IExt):
                         "image_url": cloud_image_path,
                         "alignment": ui.Alignment.CENTER,
                         "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
-                    }}
+                    },
+                    "border_radius": 5
+                    }
                     project_image_widgets[i % IMAGES_PER_PAGE].style = styles[i % IMAGES_PER_PAGE]
                     project_image_widgets[i % IMAGES_PER_PAGE].enabled = False
 
@@ -213,12 +219,15 @@ class Echo3dSearchExtension(omni.ext.IExt):
                 if i < len(projectJsonData):
                     baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
                     imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
-                    styles[i] = {"Button.Image": {
-                                        "color": cl("#FFFFFF"),
-                                        "image_url": baseUrl + imageFilename,
-                                        "alignment": ui.Alignment.CENTER,
-                                        "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
-                                    }}
+                    styles[i] = {
+                        "Button.Image": {
+                            "color": cl("#FFFFFF"),
+                            "image_url": baseUrl + imageFilename,
+                            "alignment": ui.Alignment.CENTER,
+                            "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
+                        },
+                        "border_radius": 5
+                    }
                     project_image_widgets[i].style = styles[i]
                     project_image_widgets[i].enabled = True
                     projectRightArrow.enabled = True
@@ -269,14 +278,12 @@ class Echo3dSearchExtension(omni.ext.IExt):
                 with ui.HStack(height=80):
                     with ui.Frame(height=80, width=10):
                         projectLeftArrow = ui.Button("<", clicked_fn=on_click_left_arrow_project, enabled=False)
-                    ui.Spacer(width=5)
                     for i in range(IMAGES_PER_PAGE):
                         with ui.Frame(height=80):
                             project_image_widgets[i] = ui.Button("",
                                                                  clicked_fn=lambda index=i:
                                                                  on_click_project_image(index),
                                                                  style=styles[i], enabled=False)
-                        ui.Spacer(width=5)
                     with ui.Frame(height=80, width=10):
                         projectRightArrow = ui.Button(">", clicked_fn=on_click_right_arrow_project, enabled=False)
                 ui.Spacer(height=10)
