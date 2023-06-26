@@ -422,8 +422,6 @@ class Echo3dSearchExtension(omni.ext.IExt):
                             ui.Spacer(width=5)
                             ui.Label("Assets in Project:")
 
-                        apiKeyInput.model.set_value("summer-darkness-5935")
-                        secKeyInput.model.set_value("T8tbDSXApoJ1dQLnG0b3qPyY")
                         global project_image_widgets
                         with ui.HStack(height=80):
                             with ui.Frame(height=80, width=10):
