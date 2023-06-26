@@ -127,7 +127,6 @@ class Echo3dSearchExtension(omni.ext.IExt):
             selectedEntry = searchJsonData[current_search_page * IMAGES_PER_PAGE + index]
             url = selectedEntry["glb_location_url"]
             filename = selectedEntry["name"] + '.glb'
-            
             folder_path = os.path.join(os.path.dirname(__file__), "temp_files")
             file_path = os.path.join(folder_path, filename)
 
@@ -141,6 +140,29 @@ class Echo3dSearchExtension(omni.ext.IExt):
                                       path_to='/World/' + os.path.splitext(filename)[0].replace(" ", "_"),
                                       asset_path=file_path,
                                       usd_context=omni.usd.get_context())
+            
+            # Upload the asset to the users echo3D console
+            with open(file_path, "rb") as file:
+                api_url = "https://api.echo3d.com/upload"
+                data = {
+                    "key": apiKeyInput.model.get_value_as_string(),
+                    "secKey": secKeyInput.model.get_value_as_string(),
+                    "data": "filePath:null",
+                    "type": "upload",
+                    "email": "alex@echoar.xyz",
+                    "target_type": "2",
+                    "hologram_type": "2",
+                    "file_size": str(os.path.getsize(file_path)),
+                }
+                files = {
+                    "file_model": file
+                }
+                try:
+                    uploadRequest = requests.post(url=api_url, data=data, files=files)
+                    uploadRequest.raise_for_status()
+                    on_click_load_project()
+                except Exception as e:
+                    print(str(e))
 
         # Call the echo3D /search endpoint to get models and display the resulting thumbnails
         def on_click_search():
@@ -157,6 +179,8 @@ class Echo3dSearchExtension(omni.ext.IExt):
             librarySearchRequest = requests.post(url=api_url, data=data)
             global searchJsonData
             searchJsonData = librarySearchRequest.json()
+            searchJsonData = [data for data in searchJsonData if "glb_location_url" in data
+                              and data["source"] == 'poly']
             global search_image_widgets
             global search_button_styles
             for i in range(IMAGES_PER_PAGE):
@@ -164,7 +188,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     search_button_styles[i] = {
                         "Button.Image": {
                             "color": cl("#FFFFFF"),
-                            "image_url": librarySearchRequest.json()[i]["thumbnail"],
+                            "image_url": searchJsonData[i]["thumbnail"],
                             "alignment": ui.Alignment.CENTER,
                             "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
                         },
