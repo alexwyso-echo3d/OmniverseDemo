@@ -1,12 +1,13 @@
 import os
-import time
+import asyncio
+import aiohttp
 import omni.ext
 import omni.ui as ui
 import omni.kit.commands
 from pip_prebundle import requests
 from omni.ui import color as cl
 
-### GLOBAL VARIABLES ###
+# GLOBAL VARIABLES #
 IMAGES_PER_PAGE = 3
 current_search_page = 0
 current_project_page = 0
@@ -120,8 +121,46 @@ class Echo3dSearchExtension(omni.ext.IExt):
             searchLeftArrow.enabled = True
             update_search_images(searchJsonData)
 
+        async def on_click_search_image(index):
+            global searchJsonData
+            global current_search_page
+            selectedEntry = searchJsonData[current_search_page * IMAGES_PER_PAGE + index]
+            url = selectedEntry["glb_location_url"]
+            filename = selectedEntry["name"] + '.glb'
+            folder_path = os.path.join(os.path.dirname(__file__), "temp_files")
+            file_path = os.path.join(folder_path, filename)
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    response.raise_for_status()
+                    content = await response.read()
+
+                    with open(file_path, "wb") as file:
+                        file.write(content)
+
+                    omni.kit.commands.execute('CreateReferenceCommand',
+                                              path_to='/World/' + os.path.splitext(filename)[0].replace(" ", "_"),
+                                              asset_path=file_path,
+                                              usd_context=omni.usd.get_context())
+
+                    api_url = "https://api.echo3d.com/upload"
+                    data = {
+                        "key": apiKeyInput.model.get_value_as_string(),
+                        "secKey": secKeyInput.model.get_value_as_string(),
+                        "data": "filePath:null",
+                        "type": "upload",
+                        "target_type": "2",
+                        "hologram_type": "2",
+                        "file_size": str(os.path.getsize(file_path)),
+                        "file_model": open(file_path, "rb")
+                    }
+
+                    async with session.post(url=api_url, data=data) as uploadRequest:
+                        uploadRequest.raise_for_status()
+                        print(uploadRequest)
+
         # When a user clicks a thumbnail, download the corresponding .glb file and instantiate it in the scene
-        def on_click_search_image(index):
+        def on_click_search_image_old(index):
             global searchJsonData
             global current_search_page
             selectedEntry = searchJsonData[current_search_page * IMAGES_PER_PAGE + index]
@@ -453,7 +492,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                                 with ui.Frame(height=80):
                                     search_image_widgets[i] = ui.Button("",
                                                                         clicked_fn=lambda index=i:
-                                                                        on_click_search_image(index),
+                                                                        asyncio.ensure_future(on_click_search_image(index)),
                                                                         style=search_button_styles[i], enabled=False)
                             with ui.Frame(height=80, width=10):
                                 searchRightArrow = ui.Button(">", clicked_fn=on_click_right_arrow_search, enabled=False,
