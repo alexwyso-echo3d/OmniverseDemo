@@ -130,6 +130,9 @@ class Echo3dSearchExtension(omni.ext.IExt):
             folder_path = os.path.join(os.path.dirname(__file__), "temp_files")
             file_path = os.path.join(folder_path, filename)
 
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as response:
                     response.raise_for_status()
@@ -157,52 +160,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
 
                     async with session.post(url=api_url, data=data) as uploadRequest:
                         uploadRequest.raise_for_status()
-                        print(uploadRequest)
-
-        # When a user clicks a thumbnail, download the corresponding .glb file and instantiate it in the scene
-        def on_click_search_image_old(index):
-            global searchJsonData
-            global current_search_page
-            selectedEntry = searchJsonData[current_search_page * IMAGES_PER_PAGE + index]
-            url = selectedEntry["glb_location_url"]
-            filename = selectedEntry["name"] + '.glb'
-            folder_path = os.path.join(os.path.dirname(__file__), "temp_files")
-            file_path = os.path.join(folder_path, filename)
-
-            response = requests.get(url)
-            response.raise_for_status()
-
-            with open(file_path, "wb") as file:
-                file.write(response.content)
-
-            omni.kit.commands.execute('CreateReferenceCommand',
-                                      path_to='/World/' + os.path.splitext(filename)[0].replace(" ", "_"),
-                                      asset_path=file_path,
-                                      usd_context=omni.usd.get_context())
-            
-            # Upload the asset to the users echo3D console
-            with open(file_path, "rb") as file:
-                api_url = "https://api.echo3d.com/upload"
-                data = {
-                    "key": apiKeyInput.model.get_value_as_string(),
-                    "secKey": secKeyInput.model.get_value_as_string(),
-                    "data": "filePath:null",
-                    "type": "upload",
-                    "email": "alex@echoar.xyz",
-                    "target_type": "2",
-                    "hologram_type": "2",
-                    "file_size": str(os.path.getsize(file_path)),
-                }
-                files = {
-                    "file_model": file
-                }
-                try:
-                    uploadRequest = requests.post(url=api_url, data=data, files=files)
-                    uploadRequest.raise_for_status()
-                    on_click_load_project()
-                except Exception as e:
-                    print(str(e))
-
+        
         # Call the echo3D /search endpoint to get models and display the resulting thumbnails
         def on_click_search():
             searchTerm = searchInput.model.get_value_as_string()
@@ -342,6 +300,8 @@ class Echo3dSearchExtension(omni.ext.IExt):
         # Directly instantiate previously cached files from the session, or download them from the echo3D API
         def open_project_asset_from_filename(filename, storageId):
             folder_path = os.path.join(os.path.dirname(__file__), "temp_files")
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
             file_path = os.path.join(folder_path, filename)
             cachedUpload = os.path.exists(file_path)
             if (not cachedUpload):
@@ -518,10 +478,11 @@ class Echo3dSearchExtension(omni.ext.IExt):
     def on_shutdown(self):
         # Clear all temporary download files
         folder_path = os.path.join(os.path.dirname(__file__), "temp_files")
-        file_list = os.listdir(folder_path)
-        for file_name in file_list:
-            file_path = os.path.join(folder_path, file_name)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
+        if os.path.exists(folder_path):
+            file_list = os.listdir(folder_path)
+            for file_name in file_list:
+                file_path = os.path.join(folder_path, file_name)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
 
         print("[echo3D] echo3D shutdown")
