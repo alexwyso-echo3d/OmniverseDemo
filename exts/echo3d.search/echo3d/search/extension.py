@@ -193,7 +193,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     }
                     search_image_widgets[i].style = search_button_styles[i]
                     search_image_widgets[i].enabled = True
-                    searchRightArrow.enabled = True
+                    searchRightArrow.enabled = len(searchJsonData) > IMAGES_PER_PAGE
                 else:
                     global cloud_image_path
                     search_button_styles[i] = {
@@ -353,7 +353,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                         }
                         project_image_widgets[i].style = project_button_styles[i]
                         project_image_widgets[i].enabled = True
-                        projectRightArrow.enabled = True
+                        projectRightArrow.enabled = len(projectJsonData) > IMAGES_PER_PAGE
                     else:
                         global cloud_image_path
                         project_button_styles[i] = {
