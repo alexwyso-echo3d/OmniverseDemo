@@ -167,6 +167,8 @@ class Echo3dSearchExtension(omni.ext.IExt):
         def on_click_search():
             global current_search_page
             current_search_page = 0
+            searchLeftArrow.enabled = False
+            searchRightArrow.enabled = False
             searchTerm = searchInput.model.get_value_as_string()
 
             api_url = "https://api.echo3d.com/search"
@@ -328,8 +330,10 @@ class Echo3dSearchExtension(omni.ext.IExt):
 
         # Call the echo3D /query endpoint to get models and display the resulting thumbnails
         def on_click_load_project():
-            global current_search_page
-            current_search_page = 0
+            global current_project_page
+            current_project_page = 0
+            projectLeftArrow.enabled = False
+            projectRightArrow.enabled = False
             api_url = "https://api.echo3d.com/query"
             data = {
                 "key": apiKeyInput.model.get_value_as_string(),
