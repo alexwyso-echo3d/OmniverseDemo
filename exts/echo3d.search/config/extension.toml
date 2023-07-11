@@ -40,6 +40,13 @@ icon = "data/icon.png"
 [[python.module]]
 name = "echo3d.search"
 
+[python.pipapi]
+requirements = [
+    "requests"
+]
+ 
+use_online_index = true
+
 [[test]]
 # Extra dependencies only to be used during test run
 dependencies = [
