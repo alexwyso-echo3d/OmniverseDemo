@@ -76,6 +76,8 @@ class Echo3dSearchExtension(omni.ext.IExt):
         def update_search_images(searchJsonData):
             start_index = current_search_page * IMAGES_PER_PAGE
             end_index = start_index + IMAGES_PER_PAGE
+            print(start_index)
+            print(end_index)
             for i in range(start_index, end_index):
                 if i < len(searchJsonData):
                     search_button_styles[i % IMAGES_PER_PAGE] = {"Button.Image": {
@@ -163,6 +165,8 @@ class Echo3dSearchExtension(omni.ext.IExt):
         
         # Call the echo3D /search endpoint to get models and display the resulting thumbnails
         def on_click_search():
+            global current_search_page
+            current_search_page = 0
             searchTerm = searchInput.model.get_value_as_string()
 
             api_url = "https://api.echo3d.com/search"
@@ -210,6 +214,8 @@ class Echo3dSearchExtension(omni.ext.IExt):
   
         # Clear all the thumbnails and search term
         def on_reset_search():
+            global current_search_page
+            current_search_page = 0
             searchInput.model.set_value("")
             global search_image_widgets
             for i in range(IMAGES_PER_PAGE):
@@ -322,6 +328,8 @@ class Echo3dSearchExtension(omni.ext.IExt):
 
         # Call the echo3D /query endpoint to get models and display the resulting thumbnails
         def on_click_load_project():
+            global current_search_page
+            current_search_page = 0
             api_url = "https://api.echo3d.com/query"
             data = {
                 "key": apiKeyInput.model.get_value_as_string(),
