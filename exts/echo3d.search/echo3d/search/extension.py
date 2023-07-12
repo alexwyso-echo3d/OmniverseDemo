@@ -1,10 +1,11 @@
+import json
 import os
 import asyncio
 import aiohttp
 import omni.ext
 import omni.ui as ui
 import omni.kit.commands
-from pip_prebundle import requests
+import urllib
 from omni.ui import color as cl
 
 # GLOBAL VARIABLES #
@@ -179,9 +180,13 @@ class Echo3dSearchExtension(omni.ext.IExt):
                 "include2Dcontent": "false"
             }
 
-            librarySearchRequest = requests.post(url=api_url, data=data)
+            encoded_data = urllib.parse.urlencode(data).encode('utf-8')
+            request = urllib.request.Request(api_url, data=encoded_data)
+            response = urllib.request.urlopen(request)
+            librarySearchRequest = response.read().decode('utf-8')
+
             global searchJsonData
-            searchJsonData = librarySearchRequest.json()
+            searchJsonData = json.loads(librarySearchRequest)
             searchJsonData = [data for data in searchJsonData if "glb_location_url" in data
                               and data["source"] == 'poly']
             global search_image_widgets
@@ -315,13 +320,15 @@ class Echo3dSearchExtension(omni.ext.IExt):
             if (not cachedUpload):
                 apiKey = apiKeyInput.model.get_value_as_string()
                 secKey = secKeyInput.model.get_value_as_string()
-                url = 'https://api.echo3d.com/query?key=' + apiKey + '&secKey=' + secKey + '&file=' + storageId
+                storageId = urllib.parse.quote(storageId)
 
-                response = requests.get(url)
-                response.raise_for_status()
+                url = f'https://api.echo3d.com/query?key={apiKey}&secKey={secKey}&file={storageId}'
+
+                response = urllib.request.urlopen(url)
+                response_data = response.read()
 
                 with open(file_path, "wb") as file:
-                    file.write(response.content)
+                    file.write(response_data)
 
             omni.kit.commands.execute('CreateReferenceCommand',
                                       path_to='/World/' + os.path.splitext(filename)[0],
@@ -340,51 +347,55 @@ class Echo3dSearchExtension(omni.ext.IExt):
                 "secKey": secKeyInput.model.get_value_as_string(),
             }
 
-            try:
-                projectQueryRequest = requests.post(url=api_url, data=data)
-                projectQueryRequest.raise_for_status()
-                values = list(projectQueryRequest.json()["db"].values())
-                entriesWithScreenshot = [data for data in values if "additionalData" in data
-                                         and "screenshotStorageID" in data["additionalData"]]
-                global projectJsonData
-                projectJsonData = entriesWithScreenshot
-                global project_image_widgets
-                global project_button_styles
-                for i in range(IMAGES_PER_PAGE):
-                    if i < len(projectJsonData):
-                        baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
-                        imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
-                        project_button_styles[i] = {
-                            "Button.Image": {
-                                "color": cl("#FFFFFF"),
-                                "image_url": baseUrl + imageFilename,
-                                "alignment": ui.Alignment.CENTER,
-                                "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
-                            },
-                            "border_radius": 5
-                        }
-                        project_image_widgets[i].style = project_button_styles[i]
-                        project_image_widgets[i].enabled = True
-                        projectRightArrow.enabled = len(projectJsonData) > IMAGES_PER_PAGE
-                    else:
-                        global cloud_image_path
-                        project_button_styles[i] = {
-                            "Button.Image": {
-                                "color": cl("#FFFFFF30"),
-                                "image_url": cloud_image_path,
-                                "alignment": ui.Alignment.CENTER,
-                                "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
-                            },
-                            "border_radius": 5
-                        }
-                        project_image_widgets[i].style = project_button_styles[i]
-                        project_image_widgets[i].enabled = False
+            encoded_data = urllib.parse.urlencode(data).encode('utf-8')
+            request = urllib.request.Request(api_url, data=encoded_data)
 
-                searchButton.enabled = True
-                clearButton.enabled = True
-                searchInput.enabled = True
-                disabledStateCover.style = {"background_color": cl("#32343400")}
-                loadError.visible = False
+            try:
+                with urllib.request.urlopen(request) as response:
+                    response_data = response.read().decode('utf-8')
+                    response_json = json.loads(response_data)
+                    values = list(response_json["db"].values())
+                    entriesWithScreenshot = [data for data in values if "additionalData" in data
+                                            and "screenshotStorageID" in data["additionalData"]]
+                    global projectJsonData
+                    projectJsonData = entriesWithScreenshot
+                    global project_image_widgets
+                    global project_button_styles
+                    for i in range(IMAGES_PER_PAGE):
+                        if i < len(projectJsonData):
+                            baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
+                            imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
+                            project_button_styles[i] = {
+                                "Button.Image": {
+                                    "color": cl("#FFFFFF"),
+                                    "image_url": baseUrl + imageFilename,
+                                    "alignment": ui.Alignment.CENTER,
+                                    "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
+                                },
+                                "border_radius": 5
+                            }
+                            project_image_widgets[i].style = project_button_styles[i]
+                            project_image_widgets[i].enabled = True
+                            projectRightArrow.enabled = len(projectJsonData) > IMAGES_PER_PAGE
+                        else:
+                            global cloud_image_path
+                            project_button_styles[i] = {
+                                "Button.Image": {
+                                    "color": cl("#FFFFFF30"),
+                                    "image_url": cloud_image_path,
+                                    "alignment": ui.Alignment.CENTER,
+                                    "fill_policy": ui.FillPolicy.PRESERVE_ASPECT_CROP
+                                },
+                                "border_radius": 5
+                            }
+                            project_image_widgets[i].style = project_button_styles[i]
+                            project_image_widgets[i].enabled = False
+
+                    searchButton.enabled = True
+                    clearButton.enabled = True
+                    searchInput.enabled = True
+                    disabledStateCover.style = {"background_color": cl("#32343400")}
+                    loadError.visible = False
             except Exception as e:
                 loadError.visible = True
                 print(str(e) + ". Ensure that your API Key and Security Key are entered correctly.")
