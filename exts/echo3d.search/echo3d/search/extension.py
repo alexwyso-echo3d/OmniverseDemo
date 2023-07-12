@@ -356,7 +356,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     response_json = json.loads(response_data)
                     values = list(response_json["db"].values())
                     entriesWithScreenshot = [data for data in values if "additionalData" in data
-                                            and "screenshotStorageID" in data["additionalData"]]
+                                             and "screenshotStorageID" in data["additionalData"]]
                     global projectJsonData
                     projectJsonData = entriesWithScreenshot
                     global project_image_widgets
