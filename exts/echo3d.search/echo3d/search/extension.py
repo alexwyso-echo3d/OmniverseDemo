@@ -370,7 +370,6 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     for i in range(IMAGES_PER_PAGE):
                         if i < len(projectJsonData):
                             imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
-
                             if (imageFilename in sampleModels):
                                 baseUrl = 'https://storage.echo3d.co/0_model_samples/'
                             else:
@@ -484,8 +483,9 @@ class Echo3dSearchExtension(omni.ext.IExt):
                             for i in range(IMAGES_PER_PAGE):
                                 with ui.Frame(height=80):
                                     search_image_widgets[i] = ui.Button("",
-                                                                        clicked_fn=lambda index=i:
-                                                                        asyncio.ensure_future(on_click_search_image(index)),
+                                                                        clicked_fn=lambda idx=i:
+                                                                        asyncio.ensure_future(
+                                                                            on_click_search_image(idx)),
                                                                         style=search_button_styles[i], enabled=False)
                             with ui.Frame(height=80, width=10):
                                 searchRightArrow = ui.Button(">", clicked_fn=on_click_right_arrow_search, enabled=False,
