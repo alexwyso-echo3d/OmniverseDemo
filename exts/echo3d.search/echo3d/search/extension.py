@@ -1,6 +1,8 @@
 import json
 import os
 import asyncio
+import ssl
+import certifi
 import aiohttp
 import omni.ext
 import omni.ui as ui
@@ -182,7 +184,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
 
             encoded_data = urllib.parse.urlencode(data).encode('utf-8')
             request = urllib.request.Request(api_url, data=encoded_data)
-            response = urllib.request.urlopen(request)
+            response = urllib.request.urlopen(request, context=ssl.create_default_context(cafile=certifi.where()))
             librarySearchRequest = response.read().decode('utf-8')
 
             global searchJsonData
@@ -324,8 +326,8 @@ class Echo3dSearchExtension(omni.ext.IExt):
 
                 url = f'https://api.echo3d.com/query?key={apiKey}&secKey={secKey}&file={storageId}'
 
-                print(url)
-                response = urllib.request.urlopen(url)
+                response = urllib.request.urlopen(url, context=ssl.create_default_context(cafile=certifi.where()))
+
                 response_data = response.read()
 
                 with open(file_path, "wb") as file:
@@ -352,7 +354,8 @@ class Echo3dSearchExtension(omni.ext.IExt):
             request = urllib.request.Request(api_url, data=encoded_data)
 
             try:
-                with urllib.request.urlopen(request) as response:
+                with urllib.request.urlopen(request,
+                                            context=ssl.create_default_context(cafile=certifi.where())) as response:
                     response_data = response.read().decode('utf-8')
                     response_json = json.loads(response_data)
                     values = list(response_json["db"].values())
