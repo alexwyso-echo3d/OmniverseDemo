@@ -324,6 +324,7 @@ class Echo3dSearchExtension(omni.ext.IExt):
 
                 url = f'https://api.echo3d.com/query?key={apiKey}&secKey={secKey}&file={storageId}'
 
+                print(url)
                 response = urllib.request.urlopen(url)
                 response_data = response.read()
 
@@ -361,10 +362,19 @@ class Echo3dSearchExtension(omni.ext.IExt):
                     projectJsonData = entriesWithScreenshot
                     global project_image_widgets
                     global project_button_styles
+                    
+                    sampleModels = ["6af76ce2-2f57-4ed0-82d8-42652f0eddbe.png",
+                                    "d2398ecf-566b-4fde-b8cb-46b2fd6add1d.png",
+                                    "d686a655-e800-430d-bfd2-e38cdfb0c9e9.png"]
+
                     for i in range(IMAGES_PER_PAGE):
                         if i < len(projectJsonData):
-                            baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
                             imageFilename = projectJsonData[i]["additionalData"]["screenshotStorageID"]
+
+                            if (imageFilename in sampleModels):
+                                baseUrl = 'https://storage.echo3d.co/0_model_samples/'
+                            else:
+                                baseUrl = 'https://storage.echo3d.co/' + apiKeyInput.model.get_value_as_string() + "/"
                             project_button_styles[i] = {
                                 "Button.Image": {
                                     "color": cl("#FFFFFF"),
